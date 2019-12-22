@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>World Inequality Data 1</title>
+    <link rel="stylesheet" href="dc.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+</head>
+
+<body>
+    <h1>World Inequality Data</h1>
+
+
+    <div id="carType">
+        <strong>List of countries</strong>
+        <span class="reset" style="display: none;">Selected: <span class="filter"></span></span>
+        <a class="reset" href="javascript:carTypeChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+        <div class="clearfix"></div>
+
+    </div>
+
+    <div id="years">
+        <strong>Years</strong>
+        <span class="reset" style="display: none;">Selected: <span class="filter"></span></span>
+        <a class="reset" href="javascript:yearChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+        <div class="clearfix"></div>
+    </div>
+
+    <div id="year">
+        <strong>Years</strong>
+        <span class="reset" style="display: none;">Selected: <span class="filter"></span></span>
+        <a class="reset" href="javascript:yearChart.filterAll();dc.redrawAll();" style="display: none;">reset</a>
+        <div class="clearfix"></div>
+    </div>
+
+    <div>
+        <div class="dc-data-count">
+            <span class="filter-count"></span> selected out of <span class="total-count"></span> records | <a href="javascript:dc.filterAll(); dc.renderAll();">Reset All</a>
+        </div>
+    </div>
+    <table class="table table-hover dc-data-table">
+    </table>
+
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+    <script src="crossfilter.js"></script>
+    <script src="d3.js"></script>
+    <script src="dc.js"></script>
+
+    <script>
+        var carTypeChart = dc.rowChart("#carType"),
+            yearChart = dc.rowChart("#years");
+        // add some stats in here
+
+        // visCount = dc.dataCount(".dc-data-count"),
+        // visTable = dc.dataTable(".dc-data-table");
+
+        var url = "world_inequality.tsv";
+
+        d3.tsv(url, function(err, data) {
+            //             country	year	average	gini_index	cumul	high	low	share	width
+            // 0	AE	2009	141506.753713	0.6485995435493852	8e-05	0.01	0.0	8e-05	0.01
+            // 1	AE	2009	141506.753713	0.6485995435493852	0.00047999999999999996	0.02	0.01	0.00041	0.01
+
+            if (err) throw err;
+
+            data.forEach(function(d) {
+                d.Timestamp = new Date(d.year);
+            });
+
+            var ndx = crossfilter(data);
+            var all = ndx.groupAll();
+
+            var countryDim = ndx.dimension(function(d) {
+                return d["country"];
+            });
+            // var yearDim = ndx.dimension(function(d) {
+            //     return d["gate-name"];
+            // });
+            var dateDim = ndx.dimension(function(d) {
+                return d.year;
+            });
+
+            var countryGroup = countryDim.group();
+            // var gateNameGroup = gateNameDim.group();
+            var dateGroup = dateDim.group();
+
+
+            carTypeChart
+                .dimension(countryGroup)
+                .group(countryGroup)
+                .elasticX(true)
+                .data(function(group) {
+                    return group.top(5);
+                });
+
+            yearChart
+                .dimension(dateDim)
+                .group(dateGroup)
+                .elasticX(true)
+                .data(function(group) {
+                    return group.top(5);
+                });
+
+            // gateNameChart
+            //     .dimension(gateNameDim)
+            //     .group(gateNameGroup)
+            //     .elasticX(true)
+            //     .data(function(group) {
+            //         return group.top(10);
+            //     });
+
+
+            visCount
+                .dimension(ndx)
+                .group(all);
+
+            visTable
+                .dimension(dateDim)
+                // Data table does not use crossfilter group but rather a closure
+                // as a grouping function
+                .group(function(d) {
+                    var format = d3.format('02d');
+                    // return d.Timestamp.getFullYear() + '/' + format((d.Timestamp.getMonth() + 1));
+                    return d.year;
+                })
+                .columns([
+                    "year",
+                    "average",
+                    "gini_index",
+                ]);
+
+            dc.renderAll();
+
+        });
+    </script>
+</body>
+
+</html>
